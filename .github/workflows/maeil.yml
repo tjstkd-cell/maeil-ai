@@ -1,0 +1,66 @@
+name: maeil-ai-publish
+
+on:
+  schedule:
+    - cron: "0 23 * * *"   # 08:00 KST 속보(해외)
+    - cron: "0 3 * * *"    # 12:00 KST 툴
+    - cron: "0 8 * * *"    # 17:00 KST 속보(국내)
+    - cron: "0 11 * * *"   # 20:00 KST 툴
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "news-am / news-pm / tool"
+        required: true
+        default: "news-am"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: maeil-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pillow==12.0.0
+      - name: decide job
+        id: job
+        run: |
+          case "${{ github.event.schedule }}" in
+            "0 23 * * *") echo "args=news --slot am" >> $GITHUB_OUTPUT ;;
+            "0 8 * * *")  echo "args=news --slot pm" >> $GITHUB_OUTPUT ;;
+            "0 3 * * *"|"0 11 * * *") echo "args=tool" >> $GITHUB_OUTPUT ;;
+            *)
+              case "${{ github.event.inputs.job }}" in
+                news-pm) echo "args=news --slot pm" >> $GITHUB_OUTPUT ;;
+                tool)    echo "args=tool" >> $GITHUB_OUTPUT ;;
+                *)       echo "args=news --slot am" >> $GITHUB_OUTPUT ;;
+              esac ;;
+          esac
+      - name: publish
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BLOGGER_CLIENT_ID: ${{ secrets.BLOGGER_CLIENT_ID }}
+          BLOGGER_CLIENT_SECRET: ${{ secrets.BLOGGER_CLIENT_SECRET }}
+          BLOGGER_REFRESH_TOKEN: ${{ secrets.BLOGGER_REFRESH_TOKEN }}
+          BLOG_ID: ${{ secrets.BLOG_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PAGES_BASE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          PYTHONIOENCODING: utf-8
+        run: python maeil.py ${{ steps.job.outputs.args }}
+      - name: save state
+        if: always()
+        run: |
+          git config user.name "maeil-ai-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A data
+          git diff --cached --quiet || git commit -m "state $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M')"
+          git pull --rebase
+          git push
