@@ -310,7 +310,7 @@ JSON으로만 답해:
 
 def build_news_html(d, items, now):
     parts = ['<div style="background:#fff3a6;border:1px dashed #c9a800;border-radius:12px;padding:16px 18px;margin:0 0 24px">'
-             '<b>⚡ 오늘 3줄 요약</b><ul style="margin:8px 0 0;padding-left:20px">' +
+             '<b>오늘 3줄 요약</b><ul style="margin:8px 0 0;padding-left:20px">' +
              "".join(f"<li>{html.escape(s)}</li>" for s in d.get("summary3", [])[:3]) + "</ul></div>"]
     used = []
     for n, x in enumerate(d.get("items", []), 1):
@@ -319,10 +319,10 @@ def build_news_html(d, items, now):
         parts.append(clean_html(x.get("html", "")))
         if idx:
             links = " · ".join(f'<a href="{html.escape(items[i]["link"])}" rel="nofollow noopener" target="_blank">{html.escape(items[i]["source"])}</a>' for i in idx)
-            parts.append(f'<p style="font-size:14px;color:#6b6b6b">📎 원문: {links}</p>')
+            parts.append(f'<p style="font-size:14px;color:#6b6b6b">원문: {links}</p>')
             used += idx
     if d.get("comment"):
-        parts.append(f"<blockquote>🤖 <b>매일이의 한마디</b><br/>{html.escape(d['comment'])}</blockquote>")
+        parts.append(f"<blockquote><b>매일이의 한마디</b><br/>{html.escape(d['comment'])}</blockquote>")
     parts.append('<p style="font-size:13px;color:#6b6b6b">이 글은 각 언론사·기업 공식 발표를 바탕으로 매일 AI가 요약·해설한 글이에요. '
                  f'{now:%Y.%m.%d %H:%M} 기준이며, 자세한 내용은 원문을 확인해 주세요.</p>')
     return "\n".join(parts), sorted(set(used))
@@ -409,7 +409,7 @@ def build_tool_html(d, repo, now):
     parts = [f'<p><strong>{html.escape(d.get("oneline", ""))}</strong></p>',
              '<table style="width:100%;border-collapse:collapse;font-size:15px;margin:12px 0 24px">' +
              row("저장소", f'<a href="{html.escape(repo["html_url"])}" rel="nofollow noopener" target="_blank">{html.escape(repo["full_name"])}</a>') +
-             row("GitHub 별", f'⭐ {repo["stargazers_count"]:,}개 ({now:%m.%d} 기준)') +
+             row("GitHub 별", f'★ {repo["stargazers_count"]:,}개 ({now:%m.%d} 기준)') +
              row("언어", html.escape(repo.get("language") or "-")) +
              row("라이선스", html.escape(lic)) +
              row("공개일", repo["created_at"][:10]) + "</table>"]
@@ -417,7 +417,7 @@ def build_tool_html(d, repo, now):
         parts.append(f"<h2>{html.escape(s.get('heading', ''))}</h2>")
         parts.append(clean_html(s.get("html", "")))
     if d.get("comment"):
-        parts.append(f"<blockquote>🤖 <b>매일이의 한마디</b><br/>{html.escape(d['comment'])}</blockquote>")
+        parts.append(f"<blockquote><b>매일이의 한마디</b><br/>{html.escape(d['comment'])}</blockquote>")
     parts.append('<p style="font-size:13px;color:#6b6b6b">이 글은 프로젝트의 공개 README를 바탕으로 매일 AI가 정리한 소개 글이에요. '
                  '오픈소스는 업데이트가 잦으니 설치 전 저장소의 최신 안내를 꼭 확인해 주세요.</p>')
     return "\n".join(parts)
