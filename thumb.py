@@ -11,7 +11,28 @@ Y, K, WH, GR = (255, 212, 0), (17, 17, 17), (255, 255, 255), (150, 150, 150)
 THEME = {
     "news": {"bg": Y, "fg": K, "pill_bg": K, "pill_fg": Y, "label": "오늘의 AI 속보", "sub": K, "robot": K, "robot_face": Y},
     "tool": {"bg": K, "fg": Y, "pill_bg": Y, "pill_fg": K, "label": "급상승 AI 툴", "sub": GR, "robot": Y, "robot_face": K},
+    "guide": {"bg": WH, "fg": K, "pill_bg": Y, "pill_fg": K, "label": "AI 가이드", "sub": (90, 90, 90), "robot": K, "robot_face": Y},
+    "auto": {"bg": (34, 34, 34), "fg": WH, "pill_bg": WH, "pill_fg": K, "label": "자동화 실전", "sub": GR, "robot": WH, "robot_face": Y},
+    "res": {"bg": (246, 241, 222), "fg": K, "pill_bg": K, "pill_fg": WH, "label": "자료실", "sub": (110, 100, 70), "robot": K, "robot_face": WH},
 }
+
+
+def book(d, x, y, s, color):
+    d.rounded_rectangle([x, y + s * .12, x + s * .47, y + s * .9], radius=3, fill=color)
+    d.rounded_rectangle([x + s * .53, y + s * .12, x + s, y + s * .9], radius=3, fill=color)
+
+
+def flow(d, x, y, s, color):
+    r = s * .16
+    pts = [(x + r, y + s * .2), (x + s - r, y + s * .5), (x + r, y + s * .8)]
+    d.line(pts, fill=color, width=max(3, int(s * .1)))
+    for px, py in pts:
+        d.ellipse([px - r, py - r, px + r, py + r], fill=color)
+
+
+def folder(d, x, y, s, color):
+    d.polygon([(x, y + s * .15), (x + s * .4, y + s * .15), (x + s * .5, y + s * .28), (x + s, y + s * .28),
+               (x + s, y + s * .88), (x, y + s * .88)], fill=color)
 
 
 def font(w, size):
@@ -95,8 +116,10 @@ def make(kind, title, out, date="", repo="", stars=None):
     d.rounded_rectangle([pad, pad, pad + pw, pad + 62], radius=31, fill=t["pill_bg"])
     if kind == "news":
         bolt(d, pad + 22, pad + 14, icon, t["pill_fg"])
-    else:
+    elif kind == "tool":
         star(d, pad + 22 + icon / 2, pad + 31, icon / 2, t["pill_fg"])
+    else:
+        {"guide": book, "auto": flow, "res": folder}[kind](d, pad + 22, pad + 14, icon, t["pill_fg"])
     d.text((pad + 22 + icon + 12, pad + 31), t["label"], font=pf, fill=t["pill_fg"], anchor="lm")
     if date:
         d.text((pad + pw + 20, pad + 31), date, font=font("SemiBold", 28), fill=t["sub"], anchor="lm")
@@ -105,7 +128,7 @@ def make(kind, title, out, date="", repo="", stars=None):
     if kind == "news":
         title = re.sub(r"^\s*\d+월\s*\d+일\s*(아침|오후)?\s*AI\s*속보\s*[:：|\-]?\s*", "", title) or title
     max_w = W - pad * 2 - 230
-    box_h = 300 if kind == "news" else 240
+    box_h = 240 if kind == "tool" else 300
     f, lines, lh = fit_title(d, title, max_w, box_h)
     top = pad + 62 + 40 + (box_h - lh * len(lines)) // 2
     for i, line in enumerate(lines):
@@ -124,7 +147,7 @@ def make(kind, title, out, date="", repo="", stars=None):
             d.text((sx + 44, y0 + 16), s_txt, font=font("Bold", 28), fill=Y, anchor="lm")
 
     # 하단 브랜드
-    d.line([(pad, H - pad - 52), (W - pad, H - pad - 52)], fill=t["fg"] if kind == "news" else (60, 60, 60), width=3)
+    d.line([(pad, H - pad - 52), (W - pad, H - pad - 52)], fill=(60, 60, 60) if kind in ("tool", "auto") else t["fg"], width=3)
     d.text((pad, H - pad - 4), "매일 AI", font=font("Black", 34), fill=t["fg"], anchor="lb")
     d.text((pad + 150, H - pad - 4), "속보 · 툴 · 자동화   ai.free-m.club", font=font("SemiBold", 26), fill=t["sub"], anchor="lb")
 
@@ -140,4 +163,7 @@ if __name__ == "__main__":
     o = os.path.join(HERE, "data")
     make("news", "11월 21일 AI 속보: 167년 수학 난제 해결 주장과 앤스로픽의 불안한 상장", os.path.join(o, "thumb-news.jpg"), date="11.21 아침")
     make("tool", "dsh-Go: DeepSeek를 내 주머니 속에! 모바일 AI 에이전트 리뷰", os.path.join(o, "thumb-tool.jpg"), repo="ccch1mneyyy/dsh-Go", stars=29110)
+    make("guide", "챗GPT로 회의록 5분 만에 정리하는 법", os.path.join(o, "thumb-guide.jpg"))
+    make("auto", "새 메일 오면 AI가 요약해서 슬랙으로 보내기 (n8n)", os.path.join(o, "thumb-auto.jpg"))
+    make("res", "바로 복사해 쓰는 업무 이메일 프롬프트 12개", os.path.join(o, "thumb-res.jpg"))
     print("ok")
