@@ -6,10 +6,11 @@ on:
     - cron: "0 3 * * *"    # 12:00 KST 툴
     - cron: "0 8 * * *"    # 17:00 KST 속보(국내)
     - cron: "0 11 * * *"   # 20:00 KST 툴
+    - cron: "40 * * * *"   # 매시 40분: Claude가 예약한 가이드·자동화·자료실 글에 썸네일 붙이기
   workflow_dispatch:
     inputs:
       job:
-        description: "news-am / news-pm / tool"
+        description: "news-am / news-pm / tool / thumbs"
         required: true
         default: "news-am"
 
@@ -17,7 +18,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: maeil-publish
+  # 썸네일 작업은 따로 줄 세움(대기 중인 속보·툴 작업을 밀어내지 않게)
+  group: ${{ (github.event.schedule == '40 * * * *' || github.event.inputs.job == 'thumbs') && 'maeil-thumbs' || 'maeil-publish' }}
   cancel-in-progress: false
 
 jobs:
@@ -34,14 +36,16 @@ jobs:
         id: job
         run: |
           case "${{ github.event.schedule }}" in
-            "0 23 * * *") echo "args=news --slot am" >> $GITHUB_OUTPUT ;;
-            "0 8 * * *")  echo "args=news --slot pm" >> $GITHUB_OUTPUT ;;
-            "0 3 * * *"|"0 11 * * *") echo "args=tool" >> $GITHUB_OUTPUT ;;
+            "0 23 * * *") echo "args=maeil.py news --slot am" >> $GITHUB_OUTPUT ;;
+            "0 8 * * *")  echo "args=maeil.py news --slot pm" >> $GITHUB_OUTPUT ;;
+            "0 3 * * *"|"0 11 * * *") echo "args=maeil.py tool" >> $GITHUB_OUTPUT ;;
+            "40 * * * *") echo "args=thumbs.py" >> $GITHUB_OUTPUT ;;
             *)
               case "${{ github.event.inputs.job }}" in
-                news-pm) echo "args=news --slot pm" >> $GITHUB_OUTPUT ;;
-                tool)    echo "args=tool" >> $GITHUB_OUTPUT ;;
-                *)       echo "args=news --slot am" >> $GITHUB_OUTPUT ;;
+                news-pm) echo "args=maeil.py news --slot pm" >> $GITHUB_OUTPUT ;;
+                tool)    echo "args=maeil.py tool" >> $GITHUB_OUTPUT ;;
+                thumbs)  echo "args=thumbs.py" >> $GITHUB_OUTPUT ;;
+                *)       echo "args=maeil.py news --slot am" >> $GITHUB_OUTPUT ;;
               esac ;;
           esac
       - name: publish
@@ -54,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PAGES_BASE: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
           PYTHONIOENCODING: utf-8
-        run: python maeil.py ${{ steps.job.outputs.args }}
+        run: python ${{ steps.job.outputs.args }}
       - name: save state
         if: always()
         run: |
